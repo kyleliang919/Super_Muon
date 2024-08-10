@@ -24,8 +24,12 @@ def compute_attention_with_qkv(self, query_states, key_states, value_states, att
 def online_kv(self, query_states, past_key_value, attention_mask, causal_mask, cache_size, layer_idx):
     key_states, value_states = past_key_value[layer_idx]
     with torch.enable_grad():
-        online_key_states = nn.Parameter(key_states[:, :, :cache_size, :].clone(), requires_grad = True)
-        online_value_states = nn.Parameter(value_states[:, :, :cache_size, :].clone(), requires_grad = True)
+        window_size = cache_size - 1
+        # online KV should maintain the first token and the most latest tokens
+        online_key_states = torch.cat([key_states[:, :, :1, :], key_states[:, :, -window_size:, :]], dim = 2).data.clone()
+        online_value_states = torch.cat([value_states[:, :,:1, :], value_states[:, :, -window_size:,:]], dim = 2).data.clone()
+        online_key_states = nn.Parameter(online_key_states, requires_grad = True)
+        online_value_states = nn.Parameter(online_value_states, requires_grad = True)
         # optimizer for online kv
         online_kv_optim = torch.optim.AdamW([online_key_states, online_value_states], lr = 1e-3)
         attn_output = compute_attention_with_qkv(self, query_states.detach(), key_states.detach(), value_states.detach(), attention_mask, causal_mask)
@@ -286,7 +290,7 @@ def online_kv_sdpa_forward(
     attn_output = attn_output.view(bsz, q_len, -1)
     
     attn_output = self.o_proj(attn_output)
-    #past_key_value = online_kv(self, query_states, past_key_value, attention_mask, causal_mask, cache_size, self.layer_idx) # edit the kv cache
+    past_key_value = online_kv(self, query_states, past_key_value, attention_mask, causal_mask, cache_size, self.layer_idx) # edit the kv cache
     return attn_output, None, past_key_value
         
 def setup_online_kv_for_llama(model):
