@@ -23,26 +23,27 @@ def compute_attention_with_qkv(self, query_states, key_states, value_states, att
 
 def online_kv(self, query_states, past_key_value, attention_mask, causal_mask, cache_size, layer_idx):
     key_states, value_states = past_key_value[layer_idx]
-    with torch.enable_grad():
-        window_size = cache_size - 1
-        # online KV should maintain the first token and the most latest tokens
-        online_key_states = torch.cat([key_states[:, :, :1, :], key_states[:, :, -window_size:, :]], dim = 2).data.clone()
-        online_value_states = torch.cat([value_states[:, :,:1, :], value_states[:, :, -window_size:,:]], dim = 2).data.clone()
-        online_key_states = nn.Parameter(online_key_states, requires_grad = True)
-        online_value_states = nn.Parameter(online_value_states, requires_grad = True)
-        # optimizer for online kv
-        online_kv_optim = torch.optim.AdamW([online_key_states, online_value_states], lr = 1e-3)
-        attn_output = compute_attention_with_qkv(self, query_states.detach(), key_states.detach(), value_states.detach(), attention_mask, causal_mask)
-        for _ in range(10):
-            online_kv_optim.zero_grad()
-            attn_output_with_online_kv = compute_attention_with_qkv(self, query_states.detach(), online_key_states, online_value_states, attention_mask, causal_mask)
-            online_kv_loss = torch.norm(attn_output - attn_output_with_online_kv)**2/2
-            online_kv_loss.backward()
-            online_kv_optim.step()
-        print("online_kv_loss:", online_kv_loss.item())
-        # update past key value
-        past_key_value.key_cache[layer_idx] = online_key_states.data
-        past_key_value.value_cache[layer_idx] = online_value_states.data
+    if key_states.shape[2] > cache_size:
+        with torch.enable_grad():
+            window_size = cache_size - 1
+            # online KV should maintain the first token and the most latest tokens
+            online_key_states = torch.cat([key_states[:, :, :1, :], key_states[:, :, -window_size:, :]], dim = 2).data.clone()
+            online_value_states = torch.cat([value_states[:, :,:1, :], value_states[:, :, -window_size:,:]], dim = 2).data.clone()
+            online_key_states = nn.Parameter(online_key_states, requires_grad = True)
+            online_value_states = nn.Parameter(online_value_states, requires_grad = True)
+            # optimizer for online kv
+            online_kv_optim = torch.optim.AdamW([online_key_states, online_value_states], lr = 1e-3)
+            attn_output = compute_attention_with_qkv(self, query_states.detach(), key_states.detach(), value_states.detach(), attention_mask, causal_mask)
+            for _ in range(10):
+                online_kv_optim.zero_grad()
+                attn_output_with_online_kv = compute_attention_with_qkv(self, query_states.detach(), online_key_states, online_value_states, attention_mask, causal_mask)
+                online_kv_loss = torch.norm(attn_output - attn_output_with_online_kv)**2/2
+                online_kv_loss.backward()
+                online_kv_optim.step()
+            print("online_kv_loss:", online_kv_loss.item())
+            # update past key value
+            past_key_value.key_cache[layer_idx] = online_key_states.data
+            past_key_value.value_cache[layer_idx] = online_value_states.data
     return past_key_value
 
 def online_kv_forward(
