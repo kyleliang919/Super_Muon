@@ -46,8 +46,6 @@ class MoonDataset(Dataset):
 # This code snippet is a modified version adapted from the following GitHub repository:
 # https://github.com/KellerJordan/Muon/blob/master/muon.py
 from muon import Muon
-from c_muon import Muon as C_Muon
-from c_adamw import AdamW as C_AdamW
 from super_muon import Muon as Super_Muon
 
 def get_model_and_dataloader(model_name, dataset_name, hidden_size, batch_size = 16):
@@ -100,10 +98,6 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
         return torch.optim.AdamW(
             model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95)
         )
-    elif optimizer_name == "c_adamw":
-        return C_AdamW(
-            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95)
-        )
     elif optimizer_name == "muon":
         muon_params = [
             p
@@ -119,26 +113,6 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
         ]
 
         return Muon(
-            lr=lr,
-            wd=wd,
-            muon_params=muon_params,
-            adamw_params=adamw_params,
-        )
-    elif optimizer_name == "c_muon":
-        muon_params = [
-            p
-            for name, p in model.named_parameters()
-            if p.ndim >= 2 and "embed_tokens" not in name and "lm_head" not in name
-        ]
-        adamw_params = [
-            p
-            for name, p in model.named_parameters()
-            if not (
-                p.ndim >= 2 and "embed_tokens" not in name and "lm_head" not in name
-            )
-        ]
-
-        return C_Muon(
             lr=lr,
             wd=wd,
             muon_params=muon_params,
@@ -172,27 +146,6 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
                 "gate_proj": {"dim": 0, "num_shards": 16}
 
                 }
-        )
-    elif optimizer_name == "msign":
-        from msign import Msign
-        muon_params = [
-            p
-            for name, p in model.named_parameters()
-            if p.ndim >= 2 and "embed_tokens" not in name and "lm_head" not in name
-        ]
-        adamw_params = [
-            p
-            for name, p in model.named_parameters()
-            if not (
-                p.ndim >= 2 and "embed_tokens" not in name and "lm_head" not in name
-            )
-        ]
-
-        return Msign(
-            lr=lr,
-            wd=wd,
-            muon_params=muon_params,
-            adamw_params=adamw_params,
         )
     else:
         assert 0, "optimizer not supported"
