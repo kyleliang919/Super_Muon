@@ -170,10 +170,11 @@ class Muon(torch.optim.Optimizer):
                     u = []
                     for shard in shards:
                         u.append(zeropower_via_newtonschulz5(shard, steps=group["ns_steps"]))
+                    adjusted_lr = self.adjust_lr_for_muon(lr, u[0].shape)
                     u = torch.cat(u, dim = shard_dim)
                 else:
                     u = zeropower_via_newtonschulz5(g, steps=group["ns_steps"])
-                adjusted_lr = self.adjust_lr_for_muon(lr, p.shape)
+                    adjusted_lr = self.adjust_lr_for_muon(lr, p.shape)
                 
                 # apply weight decay
                 p.data.mul_(1 - lr * wd)
