@@ -18,5 +18,5 @@ torchrun \
 ## Sharded Muon Results
 ![result](moonlight_toy_results.png)
 
-## MudamW, Don't ask me why, because why not it just works
+## MudamW, because why not
 ![result](mudamw_results.png)
