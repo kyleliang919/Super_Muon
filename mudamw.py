@@ -172,7 +172,7 @@ class AdamW(Optimizer):
                     norm_grad = (exp_avg * mask) / denom
                 else:
                     norm_grad = exp_avg / denom
-                norm_grad = exp_avg / denom
+                
                 if norm_grad.ndim == 2 and p not in self.muon_exclude:
                     step_size = self.adjust_lr_for_muon(step_size, norm_grad.shape)
                     norm_grad = zeropower_via_newtonschulz5(norm_grad, 5).to(norm_grad.dtype)
