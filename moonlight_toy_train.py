@@ -45,8 +45,6 @@ class MoonDataset(Dataset):
 
 # This code snippet is a modified version adapted from the following GitHub repository:
 # https://github.com/KellerJordan/Muon/blob/master/muon.py
-from muon import Muon
-from super_muon import Muon as Super_Muon
 
 def get_model_and_dataloader(model_name, dataset_name, hidden_size, batch_size = 16):
     name2path = {
@@ -98,7 +96,28 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
         return torch.optim.AdamW(
             model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95)
         )
+    elif optimizer_name == "mudamw":
+        from mudamw import AdamW as MudamW
+        return MudamW(
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95)
+        )
+    elif optimizer_name == "mudamw_orthogonal":
+        from mudamw import AdamW as MudamW
+        return MudamW(
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), orthogonal_init = True
+        )
+    elif optimizer_name == "c_mudamw":
+        from mudamw import AdamW as MudamW
+        return MudamW(
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), cautious = True
+        )
+    elif optimizer_name == "c_mudamw_orthogonal":
+        from mudamw import AdamW as MudamW
+        return MudamW(
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), cautious = True, orthogonal_init = True
+        )
     elif optimizer_name == "muon":
+        from muon import Muon
         muon_params = [
             p
             for name, p in model.named_parameters()
@@ -118,7 +137,8 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             muon_params=muon_params,
             adamw_params=adamw_params,
         )
-    elif optimizer_name == "super_muon":
+    elif optimizer_name == "sharded_muon":
+        from sharded_muon import Muon as Sharded_Muon
         muon_params = [
             (name, p)
             for name, p in model.named_parameters()
@@ -132,7 +152,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             )
         ]
 
-        return Super_Muon(
+        return Sharded_Muon(
             lr=lr,
             wd=wd,
             muon_params=muon_params,
@@ -144,10 +164,8 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
                 "up_proj": {"dim": 0, "num_shards": 16},
                 "down_proj": {"dim": 1, "num_shards": 16},
                 "gate_proj": {"dim": 0, "num_shards": 16}
-
                 }
-        )
-    else:
+shardedelse:
         assert 0, "optimizer not supported"
 
 

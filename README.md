@@ -10,7 +10,7 @@ torchrun \
     --nnodes=1 \
     --nproc-per-node=1 \
     --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
-    moonlight_toy_train.py --model qwen --optimizer super_muon --dataset openwebtext-100k --hidden_size 896 --lr 1e-3 --run_name super_muon
+    moonlight_toy_train.py --model qwen --optimizer sharded_muon --dataset openwebtext-100k --hidden_size 896 --lr 1e-3 --run_name sharded_muon
 ```
 
 # Preliminary Result
