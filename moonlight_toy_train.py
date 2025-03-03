@@ -188,6 +188,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
                 "down_proj": {"dim": 1, "num_shards": 16},
                 "gate_proj": {"dim": 0, "num_shards": 16}
                 }
+            )
     else:
         assert 0, "optimizer not supported"
 
