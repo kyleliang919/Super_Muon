@@ -14,4 +14,9 @@ torchrun \
 ```
 
 # Preliminary Result
+
+## Sharded Muon Results
 ![result](moonlight_toy_results.png)
+
+## MudamW, Don't ask me why, because why not it just works
+![result](mudamw_results.png)
