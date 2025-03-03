@@ -99,7 +99,9 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
     elif optimizer_name == "mudamw":
         from mudamw import AdamW as MudamW
         return MudamW(
-            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95)
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), muon_exclude = dict([p
+            for name, p in model.named_parameters()
+            if "embed_tokens" in name or "lm_head" in name])
         )
     elif optimizer_name == "mudamw_orthogonal":
         from mudamw import AdamW as MudamW
@@ -137,6 +139,27 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             muon_params=muon_params,
             adamw_params=adamw_params,
         )
+    elif optimizer_name == "muon_with_embedding":
+        from muon import Muon
+        muon_params = [
+            p
+            for name, p in model.named_parameters()
+            if p.ndim >= 2
+        ]
+        adamw_params = [
+            p
+            for name, p in model.named_parameters()
+            if not (
+                p.ndim >= 2
+            )
+        ]
+
+        return Muon(
+            lr=lr,
+            wd=wd,
+            muon_params=muon_params,
+            adamw_params=adamw_params,
+        )
     elif optimizer_name == "sharded_muon":
         from sharded_muon import Muon as Sharded_Muon
         muon_params = [
@@ -165,7 +188,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
                 "down_proj": {"dim": 1, "num_shards": 16},
                 "gate_proj": {"dim": 0, "num_shards": 16}
                 }
-shardedelse:
+    else:
         assert 0, "optimizer not supported"
 
 

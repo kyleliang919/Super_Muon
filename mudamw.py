@@ -71,7 +71,8 @@ class AdamW(Optimizer):
         correct_bias: bool = True,
         no_deprecation_warning: bool = False,
         cautious: bool = False,
-        orthogonal_init: bool = False
+        orthogonal_init: bool = False,
+        muon_exclude: dict = {}
     ):
         if not no_deprecation_warning:
             warnings.warn(
@@ -102,6 +103,7 @@ class AdamW(Optimizer):
         
         self.init_lr = lr
         self.cautious = cautious
+        self.muon_exclude = muon_exclude
 
     def adjust_lr_for_muon(self, lr, param_shape):
         A, B = param_shape[:2]
@@ -171,7 +173,7 @@ class AdamW(Optimizer):
                 else:
                     norm_grad = exp_avg / denom
                 norm_grad = exp_avg / denom
-                if norm_grad.ndim == 2:
+                if norm_grad.ndim == 2 and p not in self.muon_exclude:
                     step_size = self.adjust_lr_for_muon(step_size, norm_grad.shape)
                     norm_grad = zeropower_via_newtonschulz5(norm_grad, 5).to(norm_grad.dtype)
                 p.add_(norm_grad, alpha=-step_size)
