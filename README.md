@@ -16,7 +16,12 @@ torchrun \
 # Preliminary Result
 
 ## Sharded Muon Results
+You can get away with no all-gather
 ![result](moonlight_toy_results.png)
 
 ## MudamW, because why not
 ![result](mudamw_results.png)
+
+## SignMuon Aka Mu-Lion
+You can communicate gradient in binary for all-gather
+![result](sign_muon.jpg)
