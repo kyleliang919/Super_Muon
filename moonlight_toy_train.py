@@ -160,6 +160,27 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             muon_params=muon_params,
             adamw_params=adamw_params,
         )
+    elif optimizer_name == "sign_muon":
+        from sign_muon import Muon
+        muon_params = [
+            p
+            for name, p in model.named_parameters()
+            if p.ndim >= 2 and "embed_tokens" not in name and "lm_head" not in name
+        ]
+        adamw_params = [
+            p
+            for name, p in model.named_parameters()
+            if not (
+                p.ndim >= 2 and "embed_tokens" not in name and "lm_head" not in name
+            )
+        ]
+
+        return Muon(
+            lr=lr,
+            wd=wd,
+            muon_params=muon_params,
+            adamw_params=adamw_params,
+        )
     elif optimizer_name == "sharded_muon":
         from sharded_muon import Muon as Sharded_Muon
         muon_params = [
