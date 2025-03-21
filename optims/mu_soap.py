@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from itertools import chain
-
+from .utils import adjust_lr_for_muon, zeropower_via_newtonschulz5
 # Parts of the code are modifications of Pytorch's AdamW optimizer
 # Parts of the code are modifications of code from https://github.com/jiaweizzhao/GaLore/blob/master/galore_torch/galore_projector.py
 
@@ -59,6 +59,7 @@ class SOAP(optim.Optimizer):
         normalize_grads: bool = False,
         data_format: str = "channels_first",
         correct_bias: bool = True,
+        muon_exclude: dict = {}
     ):
         defaults = {
             "lr": lr,
@@ -75,6 +76,7 @@ class SOAP(optim.Optimizer):
         }
         super().__init__(params, defaults)
         self._data_format = data_format
+        self.muon_exclude = muon_exclude
         
     def merge_dims(self, grad, max_precond_dim):
         """
@@ -189,6 +191,10 @@ class SOAP(optim.Optimizer):
                 if group["normalize_grads"]:
                     norm_grad = norm_grad / (1e-30+torch.mean(norm_grad**2)**0.5)
                 
+                if norm_grad.ndim == 2 and p not in self.muon_exclude:
+                    step_size = self.adjust_lr_for_muon(step_size, norm_grad.shape)
+                    norm_grad = zeropower_via_newtonschulz5(norm_grad, 5).to(norm_grad.dtype)
+
                 p.add_(norm_grad, alpha=-step_size)
                 
 

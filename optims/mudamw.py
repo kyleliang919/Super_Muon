@@ -8,7 +8,6 @@ from torch import nn
 from torch.optim import Optimizer
 
 from transformers.utils.versions import require_version
-
 def zeropower_via_newtonschulz5(G, steps):
     """
     Newton-Schulz iteration to compute the zeroth power / orthogonalization of G. We opt to use a

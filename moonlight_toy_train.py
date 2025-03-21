@@ -205,7 +205,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
         return Lion(model.parameters(), lr=lr, weight_decay=wd)
     elif optimizer_name == "mu_lion":
         from optims.mu_lion import Lion
-        return Lion(model.parameters(), lr=lr, weight_decay=wd)
+        return Lion(model.parameters(), lr=lr, weight_decay=wd, muon_exclude = dict([(p, name) for name, p in model.named_parameters() if "embed_tokens" in name or "lm_head" in name]))
     elif optimizer_name == "adafactor":
         from optims.adafactor import Adafactor
         return Adafactor(
@@ -233,19 +233,20 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             relative_step=False,
             scale_parameter=False,
             warmup_init=False,
+            muon_exclude = dict([(p, name) for name, p in model.named_parameters() if "embed_tokens" in name or "lm_head" in name])
         )
     elif optimizer_name == "shampoo":
         from optims.shampoo import Shampoo
-        return None
+        return Shampoo(model.parameters(), lr, momentum = 0.9, weight_decay = wd, update_freq = 10)
     elif optimizer_name == "mupoo":
-        from optims.mupoo import mupoo
-        return None
+        from optims.mupoo import Shampoo
+        return Shampoo(model.parameters(), lr, momentum = 0.9, weight_decay = wd, update_freq = 10, muon_exclude = dict([(p, name) for name, p in model.named_parameters() if "embed_tokens" in name or "lm_head" in name]))
     elif optimizer_name == "soap":
         from optims.soap import SOAP
-        return None
+        return SOAP(model.parameters(), lr = lr, betas=(.95, .95), weight_decay=wd, precondition_frequency=10)
     elif optimizer_name == "mu_soap":
         from optims.mu_soap import SOAP
-        return None
+        return SOAP(model.parameters(), lr = lr, betas=(.95, .95), weight_decay=wd, precondition_frequency=10, muon_exclude = dict([(p, name) for name, p in model.named_parameters() if "embed_tokens" in name or "lm_head" in name]))
     else:
         assert 0, "optimizer not supported"
 

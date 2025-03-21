@@ -1,9 +1,8 @@
-from muon import zeropower_via_newtonschulz5 
 from typing import Tuple, Optional, Callable
 
 import torch
 from torch.optim.optimizer import Optimizer
-
+from .utils import adjust_lr_for_muon, zeropower_via_newtonschulz5
 # functions
 
 def exists(val):
@@ -11,7 +10,7 @@ def exists(val):
 
 # update functions
 
-def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2):
+def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, muon_exclude):
     # stepweight decay
 
     p.data.mul_(1 - lr * wd)
@@ -19,7 +18,10 @@ def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2):
     # weight update
 
     update = exp_avg.clone().mul_(beta1).add(grad, alpha = 1 - beta1).sign_()
-    update = zeropower_via_newtonschulz5(update, 5)
+    
+    if update.ndim == 2 and p not in muon_exclude:
+        lr = adjust_lr_for_muon(lr, update.shape)
+        update = zeropower_via_newtonschulz5(update, 5).to(update.dtype)
     p.add_(update, alpha = -lr)
 
     # decay the momentum running average coefficient
@@ -34,7 +36,8 @@ class Lion(Optimizer):
         params,
         lr: float = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
-        weight_decay: float = 0.0
+        weight_decay: float = 0.0,
+        muon_exclude: dict = {}
     ):
         assert lr > 0.
         assert all([0. <= beta <= 1. for beta in betas])
@@ -48,6 +51,7 @@ class Lion(Optimizer):
         super().__init__(params, defaults)
 
         self.update_fn = update_fn
+        self.muon_exclude = muon_exclude
 
     @torch.no_grad()
     def step(
@@ -79,7 +83,8 @@ class Lion(Optimizer):
                     lr,
                     wd,
                     beta1,
-                    beta2
+                    beta2,
+                    self.muon_exclude
                 )
 
         return loss

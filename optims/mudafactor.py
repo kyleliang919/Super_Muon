@@ -1,5 +1,4 @@
 # copy dependencies from transformers/optimization.py
-from muon import zeropower_via_newtonschulz5 
 import math
 
 import torch
@@ -8,7 +7,7 @@ from torch.optim import Optimizer
 
 
 from transformers.utils.versions import require_version
-
+from .utils import adjust_lr_for_muon, zeropower_via_newtonschulz5
 
 class Adafactor(Optimizer):
     """
@@ -107,6 +106,7 @@ class Adafactor(Optimizer):
         scale_parameter=True,
         relative_step=True,
         warmup_init=False,
+        muon_exclude: dict = {}
     ):
         require_version("torch>=1.5.0")  # add_ with alpha
         if lr is not None and relative_step:
@@ -127,7 +127,8 @@ class Adafactor(Optimizer):
         }
         super().__init__(params, defaults)
         self.init_lr = lr
-        
+        self.muon_exclude = muon_exclude
+
     @staticmethod
     def _get_lr(param_group, param_state):
         rel_step_sz = param_group["lr"]
@@ -238,9 +239,10 @@ class Adafactor(Optimizer):
                     update = exp_avg_sq.rsqrt().mul_(grad)
 
                 update.div_((self._rms(update) / group["clip_threshold"]).clamp_(min=1.0))
-                update = zeropower_via_newtonschulz5(update, 5).to(update.dtype)
-                adjusted_lr = lr
-                update.mul_(adjusted_lr)
+                if update.ndim == 2 and p not in self.muon_exclude:
+                    lr = adjust_lr_for_muon(lr, update.shape)
+                    update = zeropower_via_newtonschulz5(update, 5).to(update.dtype)
+                update.mul_(lr)
 
                 if use_first_moment:
                     exp_avg = state["exp_avg"]

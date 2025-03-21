@@ -1,5 +1,6 @@
 import torch
 from torch.optim.optimizer import Optimizer
+from .utils import adjust_lr_for_muon, zeropower_via_newtonschulz5
 
 def _matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
     # use CPU for svd for speed up
@@ -46,6 +47,7 @@ class Shampoo(Optimizer):
         weight_decay: float = 0.0,
         epsilon: float = 1e-4,
         update_freq: int = 1,
+        muon_exclude: dict = {}
     ):
         if lr <= 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -68,6 +70,7 @@ class Shampoo(Optimizer):
             update_freq=update_freq,
         )
         super(Shampoo, self).__init__(params, defaults)
+        self.muon_exclude = muon_exclude
 
     def step(self, closure = None):
         """Performs a single optimization step.
@@ -138,6 +141,11 @@ class Shampoo(Optimizer):
 
                 state["step"] += 1
                 state["momentum_buffer"] = grad
-                p.data.add_(grad, alpha=-group["lr"])
+                step_size = group["lr"]
+                if grad.ndim == 2 and p not in self.muon_exclude:
+                    step_size = self.adjust_lr_for_muon(step_size, grad.shape)
+                    grad = zeropower_via_newtonschulz5(grad, 5).to(grad.dtype)
+                
+                p.data.add_(grad, alpha=-step_size)
 
         return loss
