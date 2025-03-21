@@ -97,29 +97,19 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95)
         )
     elif optimizer_name == "mudamw":
-        from mudamw import AdamW as MudamW
+        from optims.mudamw import AdamW as MudamW
         return MudamW(
-            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), muon_exclude = dict([p
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), muon_exclude = dict([(p, name)
             for name, p in model.named_parameters()
             if "embed_tokens" in name or "lm_head" in name])
         )
-    elif optimizer_name == "mudamw_orthogonal":
-        from mudamw import AdamW as MudamW
+    elif optimizer_name == "mudamw_with_embedding":
+        from optims.mudamw import AdamW as MudamW
         return MudamW(
-            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), orthogonal_init = True
-        )
-    elif optimizer_name == "c_mudamw":
-        from mudamw import AdamW as MudamW
-        return MudamW(
-            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), cautious = True
-        )
-    elif optimizer_name == "c_mudamw_orthogonal":
-        from mudamw import AdamW as MudamW
-        return MudamW(
-            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), cautious = True, orthogonal_init = True
+            model.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.95), muon_exclude = dict([])
         )
     elif optimizer_name == "muon":
-        from muon import Muon
+        from optims.muon import Muon
         muon_params = [
             p
             for name, p in model.named_parameters()
@@ -140,7 +130,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             adamw_params=adamw_params,
         )
     elif optimizer_name == "muon_with_embedding":
-        from muon import Muon
+        from optims.muon import Muon
         muon_params = [
             p
             for name, p in model.named_parameters()
@@ -161,7 +151,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             adamw_params=adamw_params,
         )
     elif optimizer_name == "sign_muon":
-        from sign_muon import Muon
+        from optims.sign_muon import Muon
         muon_params = [
             p
             for name, p in model.named_parameters()
@@ -182,7 +172,7 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
             adamw_params=adamw_params,
         )
     elif optimizer_name == "sharded_muon":
-        from sharded_muon import Muon as Sharded_Muon
+        from optims.sharded_muon import Muon as Sharded_Muon
         muon_params = [
             (name, p)
             for name, p in model.named_parameters()
@@ -210,6 +200,52 @@ def get_optimizer(optimizer_name, model, lr=1e-3, wd=0.1):
                 "gate_proj": {"dim": 0, "num_shards": 16}
                 }
             )
+    elif optimizer_name == "lion":
+        from optims.lion import Lion
+        return Lion(model.parameters(), lr=lr, weight_decay=wd)
+    elif optimizer_name == "mu_lion":
+        from optims.mu_lion import Lion
+        return Lion(model.parameters(), lr=lr, weight_decay=wd)
+    elif optimizer_name == "adafactor":
+        from optims.adafactor import Adafactor
+        return Adafactor(
+            model.parameters(),
+            lr=lr,
+            eps=(1e-30, 1e-3),
+            clip_threshold=1.0,
+            decay_rate=-0.8,
+            beta1=0.0,
+            weight_decay=wd,
+            relative_step=False,
+            scale_parameter=False,
+            warmup_init=False,
+        )
+    elif optimizer_name == "mudafactor":
+        from optims.mudafactor import Adafactor
+        return Adafactor(
+            model.parameters(),
+            lr=lr,
+            eps=(1e-30, 1e-3),
+            clip_threshold=1.0,
+            decay_rate=-0.8,
+            beta1=0.0,
+            weight_decay=wd,
+            relative_step=False,
+            scale_parameter=False,
+            warmup_init=False,
+        )
+    elif optimizer_name == "shampoo":
+        from optims.shampoo import Shampoo
+        return None
+    elif optimizer_name == "mupoo":
+        from optims.mupoo import mupoo
+        return None
+    elif optimizer_name == "soap":
+        from optims.soap import SOAP
+        return None
+    elif optimizer_name == "mu_soap":
+        from optims.mu_soap import SOAP
+        return None
     else:
         assert 0, "optimizer not supported"
 
